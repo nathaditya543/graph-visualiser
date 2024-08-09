@@ -8,8 +8,8 @@ const DemoCanvas = () => {
     const[ nodes, setNodes ]= useState([]);
     const[ edges, setEdges ] = useState([]);
     const[ conn,setConn] = useState([0,0,0,0]);
-    const [ nodeId, setNodeId ] = useState(0);
-    const [dimensions, setDimensions] = useState({
+    const[ nodeId, setNodeId ] = useState(0);
+    const[dimensions, setDimensions] = useState({
         width: 0,
         height: 0
     });
@@ -22,7 +22,13 @@ const DemoCanvas = () => {
           height: divRef.current.offsetHeight
         })
       }
-    }, [])
+    }, []);
+
+    const cantorFunc = (a,b) => {
+        var sum = a+b;
+        sum = ((sum*sum+1)/2) + b;
+        return sum;
+    };
 
     const clickHandler = (e) => {
         var x_clk = e.evt.layerX;
@@ -31,7 +37,7 @@ const DemoCanvas = () => {
         console.log(`Clicked at x: ${x_clk}, y: ${y_clk}`);
 
         const newCircle = {
-            key: nodeId.toString(),
+            id: nodeId.toString(),
             x: x_clk,
             y: y_clk,
             radius: 20,
@@ -42,57 +48,67 @@ const DemoCanvas = () => {
         setNodes(updatedItems);
     }
 
-    const handleDoubleclick = (e) => {
-        const clickedCircleId = e.target.attrs.id;
-        const updatedItems = nodes.filter((item) => item.key !== clickedCircleId);
-        setNodes(updatedItems);
-        console.log("Double Click handler");
-    };
-
     const handleSingleClick = (e) =>{
         if(conn[0] === 0){
-        nodes.map((shape) => {
-            if(shape.key === e.target.attrs.id)
-                shape.fill = 'grey';
+            nodes.map((shape) => {
+                if(shape.id === e.target.attrs.id)
+                    shape.fill = 'grey';
             });
             setConn([conn[0]^1, e.target.attrs.id, e.target.attrs.x, e.target.attrs.y]);
         }
         else{
             const newEdge = {
-                points: [conn[2],conn[3], e.target.attrs.x,e.target.attrs.y]
+                id: cantorFunc(conn[1], e.target.attrs.id),
+                points: [conn[2],conn[3], e.target.attrs.x,e.target.attrs.y],
+                parents:[conn[1], e.target.attrs.id]
             };
-
-            const updatedItems = [...edges, newEdge];
-            setEdges(updatedItems);
+            const updatedEdges = [...edges, newEdge];
+            setEdges(updatedEdges);
+            
             nodes.map((shape) => {
-                if(shape.key === conn[1])
+                if(shape.id === conn[1])
                     shape.fill = 'orange';
             });
+            
             setConn([conn[0]^1, 0, 0, 0]);
         }
         e.cancelBubble = true;
     }
     
+    const handleDoubleclick = (e) => {
+        const clickedCircleId = e.target.attrs.id;
+        const updatedItems = nodes.filter((item) => item.id !== clickedCircleId);
+        setNodes(updatedItems);
+        
+        const updatedEdges = edges.filter((edge) => edge.parents[0] !== clickedCircleId && edge.parents[1] !== clickedCircleId);
+        setEdges(updatedEdges);
+        setConn([0, 0, 0, 0]);
+        console.log("Double Click handler");
+    };
+
     const clearAll = () => {
+        setEdges([]);
         setNodes([]);
         setNodeId(0);
+        setConn([0,0,0,0]);
     }
-
-
-    useEffect(() => {
-        console.log(nodes);
-        console.log(conn);
-    })
-
 
   return (
     <div ref={divRef}>
         <Stage width={dimensions.width} height={600} ref={stageRef} onClick={clickHandler} style={{border: "2px solid black", margin:"10px"}}>
             <Layer>
+                <>
+                {edges.map((edge) => 
+                <Line
+                    id={edge.id}
+                    points={edge.points}
+                    stroke={"black"}
+                />  
+                )}
                 {nodes.map((shape) =>
                 <>
                     <Circle
-                        id = {shape.key}
+                        id = {shape.id}
                         x = {shape.x}
                         y = {shape.y}
                         fill = {shape.fill}
@@ -102,10 +118,10 @@ const DemoCanvas = () => {
                         onDblClick={handleDoubleclick}
                     />
                     <Text
-                        id = {shape.key}
+                        id = {shape.id}
                         x = {shape.x - 4}
                         y = {shape.y - 4}
-                        text={shape.key}
+                        text={shape.id}
                         fontSize={12}
                         fill="black"
                         onClick={handleSingleClick}
@@ -113,6 +129,7 @@ const DemoCanvas = () => {
                     />
                 </>
                 )}
+                </>
             </Layer>
         </Stage>
         <button onClick={clearAll} style={{margin:"10px"}}>Clear All</button>
