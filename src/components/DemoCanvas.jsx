@@ -86,6 +86,18 @@ const DemoCanvas = () => {
         console.log("Double Click handler");
     };
 
+    const handleSingleClickEdge = (e) => {
+        e.cancelBubble = true;
+    };
+
+    const handleDoubleClickEdge = (e) =>{
+        const clickedEdgeId = e.target.attrs.id;
+        const updatedItems = edges.filter((item) => item.id !== clickedEdgeId);
+        setEdges(updatedItems);
+        e.cancelBubble = true;
+    };
+
+
     const clearAll = () => {
         setEdges([]);
         setNodes([]);
@@ -103,6 +115,9 @@ const DemoCanvas = () => {
                     id={edge.id}
                     points={edge.points}
                     stroke={"black"}
+                    strokeWidth={4}
+                    onDblClick={handleDoubleClickEdge}
+                    onClick={handleSingleClickEdge}
                 />  
                 )}
                 {nodes.map((shape) =>
