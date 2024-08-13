@@ -41,7 +41,6 @@ const DemoCanvas = () => {
     const clickHandler = useCallback((e) => {
         var x_clk = e.evt.layerX;
         var y_clk = e.evt.layerY;
-        console.log("ch", x_clk, y_clk);
         const newCircle = {
             id: nodeId.toString(),
             x: x_clk,
@@ -57,7 +56,7 @@ const DemoCanvas = () => {
         updatedGraph[newCircle.id] = [];
         setGraph(updatedGraph);
 
-        //if a node was selected, unselect it.
+        
         const node = nodes.find((node) => node.id === conn[1]);
         if(node)
             node.fill = 'orange';
@@ -65,25 +64,22 @@ const DemoCanvas = () => {
     }, [conn, graph, nodes, nodeId]);
 
     const handleSingleClick = useCallback((e) => {
-        //get info about event
+        
         const parent = e.target.getClassName();
         var x = e.target.parent.attrs.x;
         var y = e.target.parent.attrs.y;
-        console.log(e.target);
-        if(parent === "Text"){// compensate for offset of Text elements
+        if(parent === "Text"){
             x = x + 4;
             y = y + 4;
         }
 
-        //check if a node is already selccted or not
-        //no node selected, prep the connection array.
         if(conn[0] === 0){ 
             const node = nodes.find((node) => node.id === e.target.attrs.id);
             if(node)
                 node.fill = 'grey';
             setConn([conn[0]^1, e.target.attrs.id, x, y]);
         }
-        //a node has been selected, add an edge now using info in connectio array.
+    
         else{ 
             const newEdge = {
                 id: cantorFunc(conn[1], e.target.attrs.id),
@@ -91,10 +87,8 @@ const DemoCanvas = () => {
                 parents:[conn[1], e.target.attrs.id]
             };
 
-            //check if the edge alread exists.
             const flag = edges.find((edge) => edge.id === newEdge.id);
 
-            //if the edge does not alr exist add it!
             if(!flag){
                 const updatedEdges = [...edges, newEdge];
                 setEdges(updatedEdges);
@@ -103,14 +97,12 @@ const DemoCanvas = () => {
                 updatedGraph[e.target.attrs.id].push(conn[1]);
                 updatedGraph[conn[1]].push(e.target.attrs.id);
             }
-            
-            //reset connection array and change the selected node's fill.
+
             const node = nodes.find((node) => node.id === conn[1]);
             if(node)
                 node.fill = 'orange';
             setConn([0, 0, 0, 0]);
         }
-        //we do not want this event propagating to the stage level.
         e.cancelBubble = true;
     }, [conn, edges, graph, nodes, cantorFunc]);
     
@@ -152,8 +144,7 @@ const DemoCanvas = () => {
     }, [edges, graph]);
     
     const handleDragEnd = (e) => {
-        console.log(e.target.attrs.x,e.target.attrs.y)
-        var updatedNodes = [...nodes]
+        var updatedNodes = [...nodes];
         updatedNodes = updatedNodes.map(node => {
             if (node.id === e.target.attrs.id) {
                 node.x = e.target.attrs.x;
@@ -161,7 +152,6 @@ const DemoCanvas = () => {
             }
             return node;
         });
-        console.log(edges);
         setNodes(updatedNodes);
     }
 
@@ -227,9 +217,7 @@ const DemoCanvas = () => {
                         />
                         <Text
                             id = {node.id}
-                            // x = {node.x - 4}
-                            // y = {node.y - 4}
-                            align='center'
+                            align='top'
                             text={node.id}
                             fontSize={12}
                             fill="black"
