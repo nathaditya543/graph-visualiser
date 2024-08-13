@@ -1,6 +1,6 @@
 
-import { Stage, Layer, Circle, Text, Line} from 'react-konva';
-import { React, useState, useEffect, useRef } from 'react';
+import { Stage, Layer, Circle, Text, Line, Group} from 'react-konva';
+import { React, useState, useEffect, useRef, useCallback } from 'react';
 
 const DemoCanvas = () => {
     const stageRef = useRef();
@@ -9,7 +9,7 @@ const DemoCanvas = () => {
     const[ edges, setEdges ] = useState([]);
     const[ conn,setConn] = useState([0,0,0,0]);
     const[ nodeId, setNodeId ] = useState(0);
-    const[ graph, setGraph ] = useState(({}))
+    const[ graph, setGraph ] = useState({})
     const[ dimensions, setDimensions ] = useState({
         width: 0,
         height: 0
@@ -25,7 +25,7 @@ const DemoCanvas = () => {
       }
     }, []);
 
-    const cantorFunc = (a,b) => { //pairing function to generate unique ids for the edges
+    const cantorFunc = useCallback((a,b) => { //pairing function to generate unique ids for the edges
         a = Number(a);
         b = Number(b);
         if(a < b){
@@ -36,13 +36,12 @@ const DemoCanvas = () => {
         var sum = a+b;
         sum = ((sum * (sum +1))/2) + b;
         return sum.toString();
-    };
+    }, []);
 
-    const clickHandler = (e) => {
+    const clickHandler = useCallback((e) => {
         var x_clk = e.evt.layerX;
         var y_clk = e.evt.layerY;
-
-        //create new node and add it.
+        console.log("ch", x_clk, y_clk);
         const newCircle = {
             id: nodeId.toString(),
             x: x_clk,
@@ -54,22 +53,23 @@ const DemoCanvas = () => {
         setNodeId(nodeId+1);
         setNodes(updatedItems);
 
-        const updatedGrpah = graph;
-        updatedGrpah[newCircle.id] = [];
-        setGraph(updatedGrpah);
+        const updatedGraph = graph;
+        updatedGraph[newCircle.id] = [];
+        setGraph(updatedGraph);
 
         //if a node was selected, unselect it.
-        const shape = nodes.find((shape) => shape.id === conn[1]);
-        if(shape)
-            shape.fill = 'orange';
+        const node = nodes.find((node) => node.id === conn[1]);
+        if(node)
+            node.fill = 'orange';
         setConn([0, 0, 0, 0]);
-    }
+    }, [conn, graph, nodes, nodeId]);
 
-    const handleSingleClick = (e) => {
+    const handleSingleClick = useCallback((e) => {
         //get info about event
         const parent = e.target.getClassName();
-        var x = e.target.attrs.x;
-        var y = e.target.attrs.y;
+        var x = e.target.parent.attrs.x;
+        var y = e.target.parent.attrs.y;
+        console.log(e.target);
         if(parent === "Text"){// compensate for offset of Text elements
             x = x + 4;
             y = y + 4;
@@ -78,9 +78,9 @@ const DemoCanvas = () => {
         //check if a node is already selccted or not
         //no node selected, prep the connection array.
         if(conn[0] === 0){ 
-            const shape = nodes.find((shape) => shape.id === e.target.attrs.id);
-            if(shape)
-                shape.fill = 'grey';
+            const node = nodes.find((node) => node.id === e.target.attrs.id);
+            if(node)
+                node.fill = 'grey';
             setConn([conn[0]^1, e.target.attrs.id, x, y]);
         }
         //a node has been selected, add an edge now using info in connectio array.
@@ -105,22 +105,23 @@ const DemoCanvas = () => {
             }
             
             //reset connection array and change the selected node's fill.
-            const shape = nodes.find((shape) => shape.id === conn[1]);
-            if(shape)
-                shape.fill = 'orange';
+            const node = nodes.find((node) => node.id === conn[1]);
+            if(node)
+                node.fill = 'orange';
             setConn([0, 0, 0, 0]);
         }
         //we do not want this event propagating to the stage level.
         e.cancelBubble = true;
-    }
+    }, [conn, edges, graph, nodes, cantorFunc]);
     
-    const handleDoubleclick = (e) => {
+    const handleDoubleclick = useCallback((e) => {
         const clickedCircleId = e.target.attrs.id;
-        const updatedItems = nodes.filter((node) => node.id !== clickedCircleId);
-        setNodes(updatedItems);
+        const updatedNodes = nodes.filter((node) => node.id !== clickedCircleId);
+        setNodes(updatedNodes);
         
         const updatedEdges = edges.filter((edge) => edge.parents[0] !== clickedCircleId && edge.parents[1] !== clickedCircleId);
         setEdges(updatedEdges);
+        
         setConn([0, 0, 0, 0]);
 
         const updatedGraph = graph;
@@ -129,14 +130,13 @@ const DemoCanvas = () => {
         });
         delete updatedGraph[clickedCircleId];
         setGraph(updatedGraph);
-
-    };
+    }, [nodes, edges, graph]);
 
     const handleSingleClickEdge = (e) => {
         e.cancelBubble = true;
     };
 
-    const handleDoubleClickEdge = (e) =>{
+    const handleDoubleClickEdge = useCallback((e) =>{
         const clickedEdgeId = e.target.attrs.id;
         const updatedItems = edges.filter((edge) => edge.id !== clickedEdgeId);
         setEdges(updatedItems);
@@ -149,14 +149,45 @@ const DemoCanvas = () => {
         setGraph(updatedGraph);
         
         e.cancelBubble = true;
-    };
+    }, [edges, graph]);
+    
+    const handleDragEnd = (e) => {
+        console.log(e.target.attrs.x,e.target.attrs.y)
+        var updatedNodes = [...nodes]
+        updatedNodes = updatedNodes.map(node => {
+            if (node.id === e.target.attrs.id) {
+                node.x = e.target.attrs.x;
+                node.y = e.target.attrs.y;
+            }
+            return node;
+        });
+        console.log(edges);
+        setNodes(updatedNodes);
+    }
 
+    const handleDragMove = (e) => {
+        var updatedEdges = edges.map((edge) => {
+            if(edge.parents[0] === e.target.attrs.id){
+                edge.points = [e.target.attrs.x, e.target.attrs.y, edge.points[2], edge.points[3]];
+            }
+            else if(edge.parents[1] === e.target.attrs.id){
+                edge.points = [ edge.points[0], edge.points[1], e.target.attrs.x, e.target.attrs.y];
+            }
+            return edge;
+        })
+        setEdges(updatedEdges);
+    }
+
+    const handleDragStart = (e) => {
+
+    }
 
     const clearAll = () => {
         setEdges([]);
         setNodes([]);
         setNodeId(0);
         setConn([0,0,0,0]);
+        setGraph({});
     }
 
   return (
@@ -173,33 +204,46 @@ const DemoCanvas = () => {
                         onDblClick={handleDoubleClickEdge}
                         onClick={handleSingleClickEdge}
                     />)}
-                    
-                    {nodes.map((shape) => <>
+
+                    {nodes.map((node) =>
+                    <Group
+                        onDragStart={handleDragStart}
+                        onDragMove={handleDragMove}
+                        onDragEnd={handleDragEnd}
+                        onClick={handleSingleClick}
+                        onDblClick={handleDoubleclick}
+                        draggable
+                        key={node.id}
+                        id={node.id}
+                        x = {node.x}
+                        y = {node.y}
+
+                    >
                         <Circle
-                            id = {shape.id}
-                            x = {shape.x}
-                            y = {shape.y}
-                            fill = {shape.fill}
-                            radius={shape.radius}
+                            id = {node.id}
+                            fill = {node.fill}
+                            radius={node.radius}
                             stroke={"black"}
-                            onClick={handleSingleClick}
-                            onDblClick={handleDoubleclick}
                         />
                         <Text
-                            id = {shape.id}
-                            x = {shape.x - 4}
-                            y = {shape.y - 4}
-                            text={shape.id}
+                            id = {node.id}
+                            // x = {node.x - 4}
+                            // y = {node.y - 4}
+                            align='center'
+                            text={node.id}
                             fontSize={12}
                             fill="black"
-                            onClick={handleSingleClick}
-                            onDblClick={handleDoubleclick}
                         />
-                    </>)}
+                    </Group>
+                    )}
                 </>
             </Layer>
         </Stage>
         <button onClick={clearAll} style={{margin:"10px"}}>Clear All</button>
+        <div>
+            <h3>Graph Object:</h3>
+            <pre>{JSON.stringify(graph, null, 2)}</pre>
+        </div>
     </div>
   );
 };
