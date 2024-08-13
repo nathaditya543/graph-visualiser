@@ -3,7 +3,7 @@ import DemoCanvas from "./components/DemoCanvas.jsx"
 export default function App() {
   return (
     <>
-    <DemoCanvas></DemoCanvas>
+      <DemoCanvas></DemoCanvas>
     </>
   )
 }

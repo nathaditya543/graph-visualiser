@@ -1,15 +1,16 @@
 
 import { Stage, Layer, Circle, Text, Line, Group} from 'react-konva';
 import { React, useState, useEffect, useRef, useCallback } from 'react';
+import Instructions from './Instructions';
 
 const DemoCanvas = () => {
     const stageRef = useRef();
     const divRef = useRef(null);
     const[ nodes, setNodes ]= useState([]);
     const[ edges, setEdges ] = useState([]);
+    const[ graph, setGraph ] = useState({});
     const[ conn,setConn] = useState([0,0,0,0]);
     const[ nodeId, setNodeId ] = useState(0);
-    const[ graph, setGraph ] = useState({})
     const[ dimensions, setDimensions ] = useState({
         width: 0,
         height: 0
@@ -106,7 +107,7 @@ const DemoCanvas = () => {
         e.cancelBubble = true;
     }, [conn, edges, graph, nodes, cantorFunc]);
     
-    const handleDoubleclick = useCallback((e) => {
+    const handleDoubleClick = useCallback((e) => {
         const clickedCircleId = e.target.attrs.id;
         const updatedNodes = nodes.filter((node) => node.id !== clickedCircleId);
         setNodes(updatedNodes);
@@ -194,20 +195,20 @@ const DemoCanvas = () => {
                         onDblClick={handleDoubleClickEdge}
                         onClick={handleSingleClickEdge}
                     />)}
-
                     {nodes.map((node) =>
                     <Group
                         onDragStart={handleDragStart}
                         onDragMove={handleDragMove}
                         onDragEnd={handleDragEnd}
                         onClick={handleSingleClick}
-                        onDblClick={handleDoubleclick}
+                        onDblClick={handleDoubleClick}
+                        onTap={handleSingleClick}
+                        onDblTap={handleDoubleClick}
                         draggable
                         key={node.id}
                         id={node.id}
                         x = {node.x}
                         y = {node.y}
-
                     >
                         <Circle
                             id = {node.id}
@@ -228,8 +229,9 @@ const DemoCanvas = () => {
             </Layer>
         </Stage>
         <button onClick={clearAll} style={{margin:"10px"}}>Clear All</button>
-        <div>
-            <h3>Graph Object:</h3>
+        <Instructions></Instructions>
+        <div style={{margin:"1rem"}}>
+            <h3>Graph Object(JSON):</h3>
             <pre>{JSON.stringify(graph, null, 2)}</pre>
         </div>
     </div>
