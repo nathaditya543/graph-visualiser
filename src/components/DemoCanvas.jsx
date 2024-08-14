@@ -1,14 +1,16 @@
 
 import { Stage, Layer, Circle, Text, Line, Group} from 'react-konva';
-import { React, useState, useEffect, useRef, useCallback } from 'react';
+import { React, useState, useEffect, useRef, useCallback, useContext } from 'react';
 import Instructions from './Instructions';
+import { GraphContext } from '../GraphProvider';
 
 const DemoCanvas = () => {
     const stageRef = useRef();
     const divRef = useRef(null);
-    const[ nodes, setNodes ]= useState([]);
-    const[ edges, setEdges ] = useState([]);
-    const[ graph, setGraph ] = useState({});
+    const { graph, setGraph, nodes, setNodes, edges, setEdges } = useContext(GraphContext);
+    // const[ nodes, setNodes ]= useState([]);
+    // const[ edges, setEdges ] = useState([]);
+    // const[ graph, setGraph ] = useState({});
     const[ conn,setConn] = useState([0,0,0,0]);
     const[ nodeId, setNodeId ] = useState(0);
     const[ dimensions, setDimensions ] = useState({
@@ -54,7 +56,7 @@ const DemoCanvas = () => {
         setNodes(updatedItems);
 
         const updatedGraph = graph;
-        updatedGraph[newCircle.id] = [];
+        updatedGraph[newCircle.id] = [newCircle.id];
         setGraph(updatedGraph);
 
         
@@ -62,7 +64,7 @@ const DemoCanvas = () => {
         if(node)
             node.fill = 'orange';
         setConn([0, 0, 0, 0]);
-    }, [conn, graph, nodes, nodeId]);
+    }, [conn, graph, nodes, nodeId, setGraph, setNodes]);
 
     const handleSingleClick = useCallback((e) => {
         
@@ -105,7 +107,7 @@ const DemoCanvas = () => {
             setConn([0, 0, 0, 0]);
         }
         e.cancelBubble = true;
-    }, [conn, edges, graph, nodes, cantorFunc]);
+    }, [conn, edges, graph, nodes, cantorFunc, setEdges]);
     
     const handleDoubleClick = useCallback((e) => {
         const clickedCircleId = e.target.attrs.id;
@@ -123,7 +125,7 @@ const DemoCanvas = () => {
         });
         delete updatedGraph[clickedCircleId];
         setGraph(updatedGraph);
-    }, [nodes, edges, graph]);
+    }, [nodes, edges, graph, setEdges, setGraph,setNodes]);
 
     const handleSingleClickEdge = (e) => {
         e.cancelBubble = true;
@@ -142,7 +144,7 @@ const DemoCanvas = () => {
         setGraph(updatedGraph);
         
         e.cancelBubble = true;
-    }, [edges, graph]);
+    }, [edges, graph, setEdges, setGraph]);
     
     const handleDragEnd = (e) => {
         var updatedNodes = [...nodes];
@@ -218,7 +220,10 @@ const DemoCanvas = () => {
                         />
                         <Text
                             id = {node.id}
-                            align='top'
+                            offsetY={4}
+                            offsetX={3}
+                            align='center'
+                            verticalAlign='middle'
                             text={node.id}
                             fontSize={12}
                             fill="black"
